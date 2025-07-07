@@ -1,3 +1,5 @@
+[![Deploy to Cloudflare](https://github.com/kingispeak/vix-monitor/actions/workflows/deploy.yml/badge.svg)](https://github.com/kingispeak/vix-monitor/actions/workflows/deploy.yml)
+
 # VIX 指數自動監控與 LINE Bot 廣播系統
 
 本專案為一個部署於 Cloudflare Workers 的 VIX 指數自動監控系統，具備定時抓取 Yahoo Finance 上的 VIX 資料，快取結果、儲存歷史、並在市場情緒極端時透過 LINE Bot 進行 **群發通知（broadcast）**。
