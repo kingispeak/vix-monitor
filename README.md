@@ -71,7 +71,7 @@ wrangler dev
 
 4. 正式部署
 ```bash
-wrangler publish
+wrangler deploy
 ```
 
 ### 設定環境變數（wrangler.jsonc）
