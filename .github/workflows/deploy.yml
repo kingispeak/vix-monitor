@@ -23,6 +23,7 @@ jobs:
       - name: Replace environment variables in wrangler.jsonc
         run: |
           sed -i 's|\${KV_ID}|${{ secrets.CF_KV_ID }}|g' wrangler.jsonc
+          sed -i 's|\${STORE_ID}|${{ secrets.STORE_ID }}|g' wrangler.jsonc
 
       - name: Deploy to Cloudflare Workers
         run: wrangler deploy

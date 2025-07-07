@@ -21,14 +21,13 @@
     	// 台灣時間 08:00 AM（等於 UTC 0:00）
     	"crons": ["0 0 * * *"]
 	},
-	"secrets": {
-		"bindings": [
-			{
-				"name": "LINE_BOT_TOKEN",
-				"secretStore": "line-tokens"
-			}
-		]
-	},
+	"secrets_store_secrets": [
+		{
+			"binding": "LINE_BOT_TOKEN",
+			"store_id": "${STORE_ID}",
+			"secret_name": "line-tokens"
+		}
+	],
 	/**
 	 * Smart Placement
 	 * Docs: https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement

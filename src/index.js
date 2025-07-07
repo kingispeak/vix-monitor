@@ -64,7 +64,9 @@ async function fetchVIXAndBroadcast(env) {
 async function sendLineBotBroadcast(env, message) {
   console.log("[LINE BOT] 廣播訊息：", message);
 
-  if (!env.LINE_BOT_TOKEN) {
+	const LINE_BOT_TOKEN = await env.LINE_BOT_TOKEN.get()
+
+  if (!LINE_BOT_TOKEN) {
     console.log("❌ 尚未設定 LINE_BOT_TOKEN");
     return;
   }
@@ -81,7 +83,7 @@ async function sendLineBotBroadcast(env, message) {
   const res = await fetch("https://api.line.me/v2/bot/message/broadcast", {
     method: "POST",
     headers: {
-      "Authorization": `Bearer ${env.LINE_BOT_TOKEN}`,
+      "Authorization": `Bearer ${LINE_BOT_TOKEN}`,
       "Content-Type": "application/json"
     },
     body
