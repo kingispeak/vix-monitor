@@ -21,6 +21,14 @@
     	// 台灣時間 08:00 AM（等於 UTC 0:00）
     	"crons": ["0 0 * * *"]
 	},
+	"secrets": {
+		"bindings": [
+			{
+				"name": "LINE_BOT_TOKEN",
+				"secretStore": "line-tokens"
+			}
+		]
+	},
 	/**
 	 * Smart Placement
 	 * Docs: https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement
@@ -38,9 +46,8 @@
 	 * Environment Variables
 	 * https://developers.cloudflare.com/workers/wrangler/configuration/#environment-variables
 	 */
-	"vars": {
-		"LINE_BOT_TOKEN": "${LINE_BOT_TOKEN}"
-	},
+	// "vars": { "MY_VARIABLE": "production_value" },
+
 	/**
 	 * Note: Use secrets to store sensitive data.
 	 * https://developers.cloudflare.com/workers/configuration/secrets/
