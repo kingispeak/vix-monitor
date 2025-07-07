@@ -9,7 +9,18 @@
 	"compatibility_date": "2025-07-05",
 	"observability": {
 		"enabled": true
-	}
+	},
+	"kv_namespaces": [
+		{
+    		"binding": "VIX_KV",
+      		"id": "${KV_ID}",
+      		"preview_id": "${KV_PREVIEW_ID}"
+    	}
+  	],
+	"triggers": {
+    	// 台灣時間 08:00 AM（等於 UTC 0:00）
+    	"crons": ["0 0 * * *"]
+	},
 	/**
 	 * Smart Placement
 	 * Docs: https://developers.cloudflare.com/workers/configuration/smart-placement/#smart-placement
@@ -27,7 +38,9 @@
 	 * Environment Variables
 	 * https://developers.cloudflare.com/workers/wrangler/configuration/#environment-variables
 	 */
-	// "vars": { "MY_VARIABLE": "production_value" },
+	"vars": {
+		"LINE_BOT_TOKEN": "${LINE_BOT_TOKEN}"
+	},
 	/**
 	 * Note: Use secrets to store sensitive data.
 	 * https://developers.cloudflare.com/workers/configuration/secrets/

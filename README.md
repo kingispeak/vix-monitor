@@ -54,6 +54,16 @@ wrangler kv namespace create VIX_KV --preview
 
 將建立後的 id / preview_id 貼到 wrangler.jsonc 對應位置。
 
+```json
+"kv_namespaces": [
+    {
+      "binding": "VIX_KV",
+      "id": "${KV_ID}",
+      "preview_id": "${KV_PREVIEW_ID}"
+    }
+  ],
+```
+
 3. 本地測試
 ```bash
 wrangler dev
