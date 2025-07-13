@@ -73,13 +73,13 @@ async function fetchVIX(env) {
 
 /* ===== Fear & Greed Index (CNN) ===== */
 async function fetchFGI(env) {
-  const res = await fetch("https://money.cnn.com/data/fear-and-greed/");
-  const html = await res.text();
+  const res = await fetch("https://production.dataviz.cnn.io/index/fearandgreed/graphdata");
+  if (!res.ok) return new Response("FGI API error", { status: 500 });
 
-  const m = html.match(/class="market-fng-gauge__dial-number-value">(\d+)<\/div>/);
-  if (!m) return new Response("FGI parse error", { status: 500 });
+  const json = await res.json();
+  const value = json?.fear_and_greed?.now;
+  if (typeof value !== "number") return new Response("FGI parse error", { status: 500 });
 
-  const value = Number(m[1]);
   const ts = new Date().toISOString();
   const day = ts.slice(0, 10);
   const data = { index: value, timestamp: ts };
