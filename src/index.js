@@ -33,7 +33,7 @@ function returnKV(env, key) {
 }
 
 async function sendLine(env, message) {
-  const token = env.LINE_BOT_TOKEN;
+  const token = await env.LINE_BOT_TOKEN.get();
   if (!token) { console.log("❌ 未設定 LINE_BOT_TOKEN"); return; }
 
   const res = await fetch("https://api.line.me/v2/bot/message/broadcast", {
