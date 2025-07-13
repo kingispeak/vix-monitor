@@ -78,12 +78,18 @@ wrangler dev
 wrangler deploy
 ```
 
-### 設定環境變數（wrangler.jsonc）
+### 設定 Secret
 
-```json
-"vars": {
-  "LINE_BOT_TOKEN": "你的 LINE Bot Channel Access Token"
-}
+專案需要 `LINE_BOT_TOKEN` 這個 Secret 才能發送 LINE 通知。請從 [LINE Developers Console](https://developers.line.biz/console/) 取得您的 Channel Access Token，並透過以下指令設定：
+
+```bash
+wrangler secret put LINE_BOT_TOKEN
 ```
 
-你可以從 LINE Developers Console > Messaging API Channel > Channel Access Token 頁面取得。
+執行後，將會提示您輸入 Secret 值。這個值會被安全地儲存在 Cloudflare，並在執行時注入到您的 Worker 環境中。
+
+若要在本地端 `wrangler dev` 進行測試，請建立一個 `.dev.vars` 檔案，並填入以下內容：
+
+```
+LINE_BOT_TOKEN="你的 LINE Bot Channel Access Token"
+```
