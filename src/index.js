@@ -73,8 +73,27 @@ async function fetchVIX(env) {
 
 /* ===== Fear & Greed Index (CNN) ===== */
 async function fetchFGI(env) {
-  const res = await fetch("https://production.dataviz.cnn.io/index/fearandgreed/graphdata");
-  if (!res.ok) return new Response("FGI API error", { status: 500 });
+	const res = await fetch(
+		"https://production.dataviz.cnn.io/index/fearandgreed/graphdata",
+		{
+			headers: {
+				"User-Agent":
+					"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0 Safari/537.36",
+				"Accept": "application/json",
+				"Referer": "https://edition.cnn.com/"
+			},
+			// 伺服器偶爾回 503，可加上重試或 5 秒 timeout
+			cf: { fetchTimeout: 5000 }
+		}
+	);
+
+	if (!res.ok) {
+		const text = await res.text();          // 看看回傳訊息
+		return new Response(
+			`FGI API error ${res.status}: ${text}`,
+			{ status: 502 }
+		);
+	}
 
   const json = await res.json();
   const value = json?.fear_and_greed?.now;
