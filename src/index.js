@@ -1,96 +1,95 @@
 export default {
+  /* ---------- HTTP 路由 ---------- */
   async fetch(request, env) {
     const url = new URL(request.url);
 
-    if (url.pathname === "/fetch-vix") {
-      return await fetchVIXAndBroadcast(env);
-    }
+    /* VIX 手動更新 / 查詢 ------------------ */
+    if (url.pathname === "/fetch-vix") return fetchVIX(env);
+    if (url.pathname === "/get-vix")   return returnKV(env, "vix-latest");
 
-    if (url.pathname === "/get-vix") {
-      const cached = await env.VIX_KV.get("vix-latest");
-      return new Response(cached || "No data", {
-        headers: { "Content-Type": "application/json" },
-      });
-    }
+    /* FGI 手動更新 / 查詢 ------------------ */
+    if (url.pathname === "/fetch-fgi") return fetchFGI(env);
+    if (url.pathname === "/get-fgi")   return returnKV(env, "fgi-latest");
 
     return new Response("Not Found", { status: 404 });
   },
 
+  /* ---------- CRON 排程 ---------- */
   async scheduled(event, env, ctx) {
-    const res = await fetchVIXAndBroadcast(env);
-    console.log("[Cron] VIX 資料已定時更新並推送");
+    await Promise.all([ fetchVIX(env), fetchFGI(env) ]);
+    console.log("[Cron] VIX & FGI 已定時更新並推送");
   }
 };
 
-async function fetchVIXAndBroadcast(env) {
-  const api = "https://query1.finance.yahoo.com/v8/finance/chart/^VIX";
-  const res = await fetch(api, {
-    headers: {
-      "User-Agent": "Mozilla/5.0",
-      "Accept": "application/json",
-    },
-  });
-
-  if (!res.ok) {
-    const text = await res.text();
-    return new Response(`Fetch error: ${res.status} - ${text}`, { status: 500 });
-  }
-
-  const data = await res.json();
-  const result = data.chart?.result?.[0];
-  const price = result?.meta?.regularMarketPrice;
-  const timestamp = new Date().toISOString();
-  const today = timestamp.slice(0, 10);
-  const payload = JSON.stringify({ price, timestamp });
-
-  // ✅ 儲存最新快取與歷史資料
-  await env.VIX_KV.put("vix-latest", payload, { expirationTtl: 300 });
-  await env.VIX_KV.put(`vix-${today}`, payload);
-
-  // ✅ 判斷情緒並廣播
-  if (price >= 40) {
-    await sendLineBotBroadcast(env, `⚠️ VIX 指數過高：${price}\n市場恐慌情緒升溫！`);
-  } else if (price <= 15) {
-    await sendLineBotBroadcast(env, `🔔 VIX 指數過低：${price}\n市場可能過度樂觀，請留意風險！`);
-  } else {
-    await sendLineBotBroadcast(env, `✅ VIX 指數：${price}\n市場情緒穩定。`);
-  }
-
-  return new Response(payload, {
+/* ===== 工具 ===== */
+function respondJSON(obj) {
+  return new Response(JSON.stringify(obj), {
     headers: { "Content-Type": "application/json" },
   });
 }
 
-async function sendLineBotBroadcast(env, message) {
-  console.log("[LINE BOT] 廣播訊息：", message);
+function returnKV(env, key) {
+  return env.VIX_KV.get(key).then(v => respondJSON(v ? JSON.parse(v) : "No data"));
+}
 
-	const LINE_BOT_TOKEN = await env.LINE_BOT_TOKEN.get()
-
-  if (!LINE_BOT_TOKEN) {
-    console.log("❌ 尚未設定 LINE_BOT_TOKEN");
-    return;
-  }
-
-  const body = JSON.stringify({
-    messages: [
-      {
-        type: "text",
-        text: message,
-      }
-    ]
-  });
+async function sendLine(env, message) {
+  const token = env.LINE_BOT_TOKEN;
+  if (!token) { console.log("❌ 未設定 LINE_BOT_TOKEN"); return; }
 
   const res = await fetch("https://api.line.me/v2/bot/message/broadcast", {
     method: "POST",
     headers: {
-      "Authorization": `Bearer ${LINE_BOT_TOKEN}`,
-      "Content-Type": "application/json"
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
     },
-    body
+    body: JSON.stringify({ messages: [{ type: "text", text: message }] }),
   });
+  if (!res.ok) console.error(`[LINE BOT ERROR] ${res.status} - ${await res.text()}`);
+}
 
-  if (!res.ok) {
-    const text = await res.text();
-    console.error(`[LINE BOT ERROR] ${res.status} - ${text}`);
-  }
+/* ===== VIX ===== */
+async function fetchVIX(env) {
+  const api = "https://query1.finance.yahoo.com/v8/finance/chart/^VIX";
+  const res = await fetch(api, {
+    headers: { "User-Agent": "Mozilla/5.0", Accept: "application/json" },
+  });
+  if (!res.ok) return new Response(`VIX fetch error ${res.status}`, { status: 500 });
+
+  const j = await res.json();
+  const price = j.chart?.result?.[0]?.meta?.regularMarketPrice;
+  const ts = new Date().toISOString();
+  const day = ts.slice(0, 10);
+  const payload = { price, timestamp: ts };
+
+  await env.VIX_KV.put("vix-latest", JSON.stringify(payload), { expirationTtl: 300 });
+  await env.VIX_KV.put(`vix-${day}`, JSON.stringify(payload));
+
+  if (price >= 40)       await sendLine(env, `⚠️ VIX 指數過高：${price}\n市場恐慌情緒升溫！`);
+  else if (price <= 15)  await sendLine(env, `🔔 VIX 指數過低：${price}\n市場可能過度樂觀，請留意風險！`);
+  else                   await sendLine(env, `✅ VIX 指數：${price}\n市場情緒穩定。`);
+
+  return respondJSON(payload);
+}
+
+/* ===== Fear & Greed Index (CNN) ===== */
+async function fetchFGI(env) {
+  const res = await fetch("https://money.cnn.com/data/fear-and-greed/");
+  const html = await res.text();
+
+  const m = html.match(/class="market-fng-gauge__dial-number-value">(\d+)<\/div>/);
+  if (!m) return new Response("FGI parse error", { status: 500 });
+
+  const value = Number(m[1]);
+  const ts = new Date().toISOString();
+  const day = ts.slice(0, 10);
+  const data = { index: value, timestamp: ts };
+
+  await env.VIX_KV.put("fgi-latest", JSON.stringify(data), { expirationTtl: 300 });
+  await env.VIX_KV.put(`fgi-${day}`, JSON.stringify(data));
+
+  if (value >= 80)       await sendLine(env, `🤑 FGI ${value}（Extreme Greed）`);
+  else if (value <= 20)  await sendLine(env, `😱 FGI ${value}（Extreme Fear）`);
+  else                   await sendLine(env, `📊 FGI ${value}`);
+
+  return respondJSON(data);
 }
